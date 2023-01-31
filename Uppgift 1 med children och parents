@@ -1,0 +1,75 @@
+import{ head, is_null, list, List, pair, Pair, tail} from './list'
+import{ HashFunction, ph_empty, ph_insert, ph_lookup, probe_linear, ProbingHashtable} from './hashtables'
+import { length, remove } from './list_prelude';
+type People = List<Pair<number,string>>;
+type Relations = List<Pair<number,number>>;
+type Person = {
+    id: number,
+    name: string,
+    parents: Array<number>,
+    children: Array<number>
+};
+type PersonTable = ProbingHashtable<number, Person>;
+
+export function toHashtable(people: People, relations: Relations): PersonTable {
+   // Create a hashtable with ph_empty
+   // Create new persons
+   // ph_insert the new person in ph_empty
+   const hash_person: HashFunction<number> = x => x;
+   let hashtable = ph_empty<number, Person>(length(people), probe_linear(hash_person));
+
+    function insert_person(people: People, relations: Relations, hashtables: ProbingHashtable<number,Person>): PersonTable {
+        if(!is_null(people) && !is_null(relations)) {
+            let person_id = head(head(people));
+            let parent_id = head(head(relations));
+            let child_id = tail(head(relations));
+            let name = tail(head(people));
+
+            let person = ph_lookup(hashtables, person_id);
+
+            if (!person) {
+                person = { id: person_id, name: name, parents: [], children: [] };
+                ph_insert(hashtables, person.id, person);
+            }
+
+            let parent = ph_lookup(hashtables, parent_id);
+            if (!parent) {
+                parent = { id: parent_id, name: '', parents: [], children: [person_id] };
+                ph_insert(hashtables, parent.id, parent);
+            } else {
+                parent.children.push(person_id);
+            }
+
+            let child = ph_lookup(hashtables, child_id);
+            if (!child) {
+                child = { id: child_id, name: '', parents: [person_id], children: [] };
+                ph_insert(hashtables, child.id, child);
+            } else {
+                child.parents.push(person_id);
+            }
+
+            return insert_person(remove(head(people), people), remove(head(relations), relations), hashtables);
+        } else{
+            return hashtables;
+        }
+    }
+    
+    return insert_person(people, relations, hashtable);
+  }
+
+export function descendants(ht: PersonTable, id: number): Array<number> | undefined{
+    let descendant: Array<number> =[];
+    let person: Person | undefined = ph_lookup(ht, id);
+    if (person === undefined) {
+        return undefined;
+    } else{
+
+    for (let i = 0; i < person.children.length; i++) {
+      let childdescendant = descendants(ht, person.children[i]);
+      if (childdescendant) {
+          descendant = descendant.concat(childdescendant);
+      }
+  }
+  return descendant
+    }
+  }
